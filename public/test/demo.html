@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+</head>
+<body>
+    <script>
+        function Animal(name, legs) {
+            this.name = name;
+            this.legs = legs;
+        }    
+        let cat = new Animal('ketty', 4);
+        console.log(cat instanceof Animal);
+        console.log(cat instanceof Object);
+        console.log(Animal.prototype.isPrototypeOf(cat));
+        console.log(Object.prototype.isPrototypeOf(cat));
+    </script>
+</body>
+</html>

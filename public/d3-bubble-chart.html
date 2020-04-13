@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hello Bubble Chart</title>
+    <meta charset="utf-8">
+
+    <script src="../src/core/d3.v4.min.js"></script>
+    <style>
+    </style>
+</head>
+
+<body>
+    <svg width="960" height="960" font-family="sans-serif" font-size="14" text-anchor="middle"></svg>
+</body>
+<script>
+    let data = d3.range(500).map(function (i) {
+        let r = Math.random() * 20;
+        return {
+            r: r,
+            class: r > 10 ? 'large' : 'small',
+        };
+    });
+    d3.select("svg").selectAll("g").remove();//清空作图区域
+    var svg = d3.select("svg"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height");
+    var format = d3.format(",d");
+
+    //       var color = d3.scaleOrdinal(d3.schemeCategory20c);
+    var color = ["#CCFF00", "#FF0033", "#336699", "#33FF66", "#669966", "#66CCFF", "#99CCFF", "#CCCCCC"];//自定义颜色
+    var pack = d3.pack()
+        .size([width, height]);
+    var num, pid;
+
+    let simulation = d3.forceSimulation(data)
+        .velocityDecay(0.2)
+        .force("x", d3.forceX().strength(0.002))
+        .force("y", d3.forceY().strength(0.002))
+        .force("r", d3.forceRadial((d) => d.r * 20 - 100))
+        .force("charge", d3.forceCollide().radius(function (d) { return d.r + 0.5; }).iterations(2))
+        .on("tick", ticked);
+
+
+    function ticked() {
+        setTimeout(() => {
+            var root = d3.hierarchy({ children: data })
+                .sum(function (d) { return d.r; });
+            console.log(data);
+            var node = svg.selectAll(".node")
+                .data(data)
+                .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", function (d) { return "translate(" + (d.x + width / 2) + "," + (d.y + height / 2) + ")"; });
+
+            node.append("circle")
+                .attr("id", function (d) { return d.id; })
+                .attr("r", function (d) { return d.r; })
+                .style("fill", function (d) { return color[d.colorPick]; });
+
+            node.append("clipPath")
+                .attr("id", function (d) { return "clip-" + d.id; })
+                .append("use")
+                .attr("xlink:href", function (d) { return "#" + d.id; });
+
+        }, 1000);
+    }
+
+</script>
+
+</html>

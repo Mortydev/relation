@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<body style="margin:0;">
+    <div style="position: relative;padding:20px;">
+        <canvas width="960" height="960"></canvas>
+        <div class="tip" style='
+                position: absolute;
+                display: none;
+                border-style: solid;
+                white-space: nowrap;
+                z-index: 9999999;
+                transition: left 0.4s cubic-bezier(0.23, 1, 0.32, 1) 0s, top 0.4s cubic-bezier(0.23, 1, 0.32, 1) 0s;
+                background-color: rgba(50, 50, 50, 0.7);
+                border-width: 0px;
+                border-color: rgb(51, 51, 51);
+                border-radius: 4px;
+                color: rgb(255, 255, 255);
+                font: 14px/21px "Microsoft YaHei";
+                padding: 5px;
+                pointer-events: none;'>
+        </div>
+    </div>
+</body>
+<script src="../src/core/d3.v4.min.js"></script>
+<script>
+    let canvas = document.querySelector("canvas"),
+        tip = d3.select('.tip'),
+        num = 1000;
+    let nodes = d3.range(num)
+        .map(function (i) {
+            let r = Math.random() * 20;
+            return {
+                r: r,
+                class: r > 10 ? 'large' : 'small',
+            };
+        })
+        .sort((a, b) => a.r - b.r);
+
+    let bubbleChart = (canvas, tip, nodes) => {
+        let a = d3.color('#E7F2FD');	//红色
+        let b = d3.color('#B1BFF7');	//绿色
+
+        let compute = d3.interpolate(a, b);
+        let context = canvas.getContext("2d"),
+            width = canvas.width,
+            height = canvas.height,
+            tau = 2 * Math.PI,
+            activeNode,
+            color = d3.scaleLinear()
+                .domain([0, 20])
+                .range([0, 1]);
+        let ticked = () => {
+            context.clearRect(0, 0, width, height);
+            context.save();
+            context.translate(width / 2, height / 2);
+
+
+            nodes.forEach(function (d) {
+                context.beginPath();
+                context.moveTo(d.x + d.r, d.y);
+                context.arc(d.x, d.y, d.r, 0, tau);
+                context.fillStyle = compute(color(d.r));
+                context.fill();
+                context.closePath();
+            });
+
+            context.restore();
+        }
+        let simulation = d3.forceSimulation(nodes)
+            .velocityDecay(0.2)
+            .force("x", d3.forceX().strength(0.002))
+            .force("y", d3.forceY().strength(0.002))
+            .force("r", d3.forceRadial((d) => d.r * num / 50 - num / 20))
+            .force("charge", d3.forceCollide().radius(function (d) { return d.r + 0.5; }).iterations(2))
+            .on("tick", ticked);
+
+        let tipFlow = (options) => {
+            tip.style("display", "block");
+            tip.style('left', `${options.x}px`);
+            tip.style('top', `${options.y}px`);
+            tip.text(`${activeNode.r}`)
+        }
+        let tipHide = () => {
+            tip.style("display", "none");
+        }
+        let getScrollOffsets = (w) => { // 使用 指定 的 窗口， 如果 不带 参数 则 使用 当前 窗口 
+            w = w || window; // 除了 IE 8 及 更早 的 版本 以外， 其他 浏览器 都能 用 
+            if (w.pageXOffset != null) return { x: w.pageXOffset, y: w.pageYOffset }; // 对 标准 模式 下 的 IE（ 或 任何 浏览器） 
+            let d = w.document;
+            if (document.compatMode == "CSS1Compat") {
+                return { x: d.documentElement.scrollLeft, y: d.documentElement.scrollTop }; // 对 怪异 模式 下 的 浏览器 
+            }
+            return { x: d.body.scrollLeft, y: d.body.scrollTop };
+        }
+        let getMouse = (e) => {
+            let box = e.getBoundingClientRect(); // 获得 在 视 口 坐标 中的 位置 
+            let offsets = getScrollOffsets(); // 上面 定义 的 工具 函数 
+            let x = box.left + offsets.x; // 转化 为 文档 坐标 
+            let y = box.top + offsets.y;
+            return { x, y };
+        }
+        canvas.addEventListener('mousemove', (e) => {
+            let mouse = getMouse(canvas, e);
+            let offsets = getScrollOffsets(); // 上面 定义 的 工具 函数 
+            let mouseX = e.x - width / 2 - mouse.x + offsets.x;
+            let mouseY = e.y - height / 2 - mouse.y + offsets.y;
+            let d = nodes.filter((node) => Math.pow(node.x - mouseX, 2) + Math.pow(node.y - mouseY, 2) < Math.pow(node.r, 2))[0];
+            if (activeNode) {
+                context.beginPath();
+                context.arc(activeNode.x + width / 2, activeNode.y + height / 2, activeNode.r, 0, tau);
+                context.fillStyle = compute(color(activeNode.r));
+                context.fill();
+                context.closePath();
+            }
+            if (d) {
+                activeNode = d;
+                context.beginPath();
+                context.arc(d.x + width / 2, d.y + height / 2, d.r, 0, tau);
+                context.fillStyle = compute(color(activeNode.r * 2));
+                context.fill();
+                context.closePath();
+                // tip跟隨
+                tipFlow({
+                    x: e.x + offsets.x + 10,
+                    y: e.y + offsets.y + 10,
+                });
+            } else {
+                tipHide();
+            }
+        })
+    }
+    bubbleChart(canvas, tip, nodes);
+</script>
